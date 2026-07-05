@@ -1,187 +1,100 @@
-# Simulación del Control de Oxígeno Disuelto en Acuicultura (RAS)
+# Simulador de lazo PI — Oxígeno Disuelto en RAS
 
-Este programa simula, en una ventana interactiva, el lazo de control de oxígeno
-disuelto descripto en el trabajo **"Sistema de Control de Oxígeno en
-Acuicultura"** (UTN-BA, Tecnologías para la Automatización, 2026). Corresponde
-al diagrama de bloques de la **Figura 1** del informe: un controlador PID
-compara el oxígeno medido contra el set-point (7 mg/L) y ajusta la frecuencia
-del aireador para corregir el error, incluso cuando aparecen perturbaciones
-(por ejemplo, un pico de consumo por alimentación de los peces).
+Archivo: `simulador_OD_RAS.html`
 
-El programa muestra, en cuatro gráficos apilados, las **4 señales del lazo**:
+## Cómo abrirlo
 
-1. **y(t) — Respuesta**: el oxígeno disuelto medido, junto con el set-point
-   r(t) y una banda de tolerancia (umbral inferior / superior). Mientras y(t)
-   se mantiene dentro de la banda, el sistema está en estado **NORMAL**
-   (hay error, pero es tolerable). Si y(t) sale de esa banda —por ejemplo por
-   una perturbación muy fuerte o un PID mal sintonizado— el sistema pasa a
-   estado de **FALLA** (hipoxia severa o sobresaturación crítica), y esto se
-   avisa en pantalla en rojo.
-2. **e(t) — Señal de error**: r(t) − y(t).
-3. **d(t) — Perturbación**: el evento de caída de oxígeno que se dispara con
-   el botón "Aplicar perturbación".
-4. **u(t) — Señal de entrada**: la frecuencia que el PID le manda al variador
-   del aireador (después del tiempo muerto del proceso).
+**No hace falta ningún archivo `.js` aparte, ni internet, ni instalar nada.**
+Todo el código (HTML + CSS + JavaScript) está adentro de ese único archivo `.html`.
 
-No hace falta saber programar para usarlo: se abre una ventana con gráficos y
-controles (sliders y botones) que se mueven con el mouse.
+1. Descargá `simulador_OD_RAS.html`.
+2. Abrilo con doble clic (se abre en tu navegador por defecto), o arrastralo a una
+   pestaña nueva de Chrome / Edge / Firefox.
+3. Listo, ya está corriendo. Podés moverlo, subirlo a Drive, mandarlo por mail o
+   subirlo al campus — sigue funcionando igual, es un archivo autónomo.
 
----
+> Si tu navegador te pregunta algo raro o lo bloquea, probá abrirlo con Chrome.
+> No usa cámara, micrófono, ni guarda nada en tu computadora.
 
-## 1. Qué vas a necesitar
+## Qué es cada parte de la pantalla
 
-- Tener **Python 3** instalado en la computadora (versión 3.8 o superior).
-- Las librerías `matplotlib` y `numpy`.
+### Columna izquierda — Tablero de control
 
-### ¿Cómo sé si tengo Python instalado?
+- **Referencia y controlador**
+  - *Set-point r(t)*: el valor deseado de oxígeno disuelto (mg/L).
+  - *Tipo de controlador*: On-Off / P / PI / PID. Cambiarlo en vivo te deja
+    comparar los cuatro comportamientos con la misma perturbación.
+  - *Kp*, *Ti*, *Td*: ganancias del controlador (Td solo aparece si elegís PID).
+  - *Banda de tolerancia*: el ± mg/L que se dibuja como franja alrededor del
+    set-point en los gráficos (el "umbral máx/mín" que pedía la consigna).
 
-Abrí una terminal (en Windows: *Símbolo del sistema* o *PowerShell*; en Mac:
-*Terminal*; en Linux: *Terminal*) y escribí:
+- **Perturbación (carga Rbio)**
+  - *Amplitud* y *Duración*: configurás cuánto O₂ consume la perturbación en
+    total y en cuánto tiempo lo hace.
+  - Botón **"Aplicar perturbación ahora"**: la dispara en el instante en que
+    lo tocás (podés hacerlo mientras corre o justo después de un Reset).
 
-```
-python3 --version
-```
+- **Retroalimentación**
+  - *Negativa* (la correcta) vs *Positiva* (demostrativa, para ver por qué el
+    lazo diverge si el signo está mal puesto).
 
-Si te muestra algo como `Python 3.11.4`, ya lo tenés. Si da error, hay que
-instalarlo desde [python.org/downloads](https://www.python.org/downloads/)
-(al instalar en Windows, marcar la casilla **"Add Python to PATH"**).
+- **Simulación**
+  - **▶ Correr / ⏸ Pausar**: arranca o congela la física del lazo.
+  - **⏭ Paso**: avanza 1 segundo simulado por vez (útil pausado, para analizar
+    el instante exacto de una perturbación).
+  - **↺ Reset**: vuelve todo al estado inicial (usa el set-point actual del
+    slider como punto de partida).
+  - *Velocidad*: cuántos segundos simulados corren por segundo real.
+  - *Ventana visible*: cuánto tiempo hacia atrás se ve en los gráficos.
 
----
+### Columna derecha — Simulación
 
-## 2. Instalar las librerías necesarias
+- **Diagrama de bloques**: el mismo lazo del informe (r → Σ → controlador →
+  Σ perturbación → planta → y, con la realimentación abajo). El signo del Σ
+  y el color de la realimentación cambian según el toggle Negativa/Positiva.
+- **Tira de lecturas**: t, r(t), y(t), e(t), u(t) y el estado del lazo
+  (estable / fuera de banda / saturado / carga activa / divergiendo), todo
+  actualizado en vivo.
+- **Gráfico 1 — Concentración (mg/L)**: r(t), y(t), la banda de tolerancia
+  sombreada y una franja violeta marcando cuándo estuvo activa la perturbación.
+- **Gráfico 2 — Error e(t)**: en su propia escala (mucho más chica que la de
+  concentración), con la misma banda de tolerancia alrededor del cero.
+- **Gráfico 3 — Salida del controlador u(t) y carga d(t)**: u(t) en Hz con
+  líneas punteadas en los límites de saturación (10 y 50 Hz), y d(t) superpuesta
+  en su propia escala fina abajo.
+- **Fundamentación del diseño** (desplegable, abajo de todo): el texto que
+  justifica por qué PI y no On-Off/P/PID, qué es la "carga" del sistema, la
+  demostración de realimentación negativa vs. positiva, el cuidado con las
+  escalas, y el modelo matemático usado.
 
-Con la terminal abierta, escribí:
+## Flujo sugerido para el TP
 
-```
-pip install matplotlib numpy
-```
+1. Dejá los valores por defecto (PI, Kp=2.5, Ti=180s, r=7 mg/L) y tocá
+   **Correr**. Vas a ver que y(t) ya arranca en el set-point (sistema en reposo).
+2. Con la simulación corriendo, configurá una perturbación (por ejemplo
+   amplitud 1.5 mg/L, duración 120 s — el evento de alimentación del informe)
+   y tocá **Aplicar perturbación ahora**.
+3. Mirá cómo cae y(t), sube e(t) y u(t) reacciona, hasta volver al set-point.
+   Pausá en el momento que quieras para leer los valores exactos en la tira
+   de lecturas.
+4. Cambiá el *Tipo de controlador* a **P** y repetí la perturbación: vas a ver
+   que queda un error residual (no vuelve exacto a 7 mg/L). Cambialo a
+   **On-Off** y vas a ver la oscilación permanente. Volvé a **PI** para
+   confirmar que es el que cumple los objetivos del informe.
+5. Probá tocar **Retroalimentación → Positiva** con el lazo corriendo: vas a
+   ver que y(t) se dispara en vez de estabilizarse. Volvé a **Negativa** y
+   dale **Reset** para seguir trabajando.
+6. Usá la sección **Fundamentación del diseño** como base de texto para la
+   parte del informe que pide justificar el tipo de controlador y explicar
+   qué es la carga del sistema.
 
-(En algunos sistemas puede ser `pip3` en vez de `pip`.)
+## Notas técnicas rápidas
 
-Esto solo hay que hacerlo **una vez** por computadora.
-
----
-
-## 3. Cómo ejecutar la simulación
-
-1. Guardá el archivo `simulacion_oxigeno_ras.py` en una carpeta que encuentres
-   fácil (por ejemplo, el Escritorio).
-2. Abrí la terminal **ubicado en esa misma carpeta**. Por ejemplo, si el
-   archivo está en el Escritorio:
-   ```
-   cd Desktop
-   ```
-3. Ejecutá:
-   ```
-   python3 simulacion_oxigeno_ras.py
-   ```
-4. Se va a abrir una ventana con dos gráficos (arriba el oxígeno disuelto,
-   abajo la frecuencia del aireador) y varios controles a la derecha.
-
----
-
-## 4. Cómo usar la ventana
-
-### Botones (abajo a la derecha)
-
-| Botón | Qué hace |
-|---|---|
-| **Play / Pausa** | Arranca o detiene el avance del tiempo simulado. Al arrancar, vas a ver cómo el oxígeno y la frecuencia del aireador evolucionan en tiempo real en el gráfico. |
-| **Reset** | Vuelve todo al estado inicial (tiempo = 0, oxígeno estabilizado, sin perturbaciones). |
-| **Aplicar perturbación** | Dispara, en el instante en que lo apretás, una caída de oxígeno con la amplitud y duración que hayas configurado en los sliders (simula, por ejemplo, un evento de alimentación). |
-
-### Sliders (controles deslizables)
-
-| Slider | Qué representa |
-|---|---|
-| **Kp** | Ganancia proporcional del controlador: cuánto reacciona el controlador ante el error actual. |
-| **Ki** | Ganancia integral: cuánto corrige el controlador el error acumulado en el tiempo (es la que garantiza que el error final sea cero). |
-| **Kd** | Ganancia derivativa: cuánto anticipa el controlador según la velocidad de cambio del error (el informe usa un PI puro, o sea Kd = 0, pero podés experimentar). |
-| **Set-point r** | El valor de oxígeno disuelto que el sistema debe mantener (por defecto 7 mg/L). |
-| **Amplitud pert. [mg/L]** | Cuántos mg/L de oxígeno "cae" el estanque durante el evento de perturbación (usá valores negativos, ej. −1.5, para simular una caída). |
-| **Duración pert. [s]** | Durante cuántos segundos se aplica esa caída antes de dejar de sumar perturbación. |
-| **Umbral inf.** | Límite inferior de la banda de oxígeno considerada "normal" (por defecto 5.0 mg/L, valor de hipoxia severa según el informe). Por debajo de este valor, el sistema pasa a estado de **FALLA**. |
-| **Umbral sup.** | Límite superior de la banda "normal" (por defecto 9.0 mg/L). Por encima de este valor, el sistema también pasa a estado de **FALLA** (sobresaturación). |
-
-**Importante:** los sliders se pueden mover en cualquier momento, incluso con
-la simulación corriendo — vas a ver el efecto inmediatamente en el gráfico.
-
-### Lectura en vivo
-
-Arriba de la ventana se muestra en todo momento, en una sola línea:
-
-```
-t=... s  y=... mg/L  e=... mg/L  u=... Hz  d=... mg/L·s⁻¹   |   Estado: NORMAL / FALLA
-```
-
-### ¿Qué diferencia hay entre "error" y "falla"?
-
-- Mientras el controlador está corrigiendo una perturbación, **siempre** hay
-  algo de error (e(t) ≠ 0) — eso es normal y esperable, es justamente lo que
-  el PID va corrigiendo con el tiempo.
-- El programa define una **banda de tolerancia** entre el "Umbral inf." y el
-  "Umbral sup." (franja verde clara en el gráfico de arriba). Mientras y(t)
-  se mantenga dentro de esa banda, el estado es **NORMAL**, aunque haya
-  error.
-- Si y(t) se escapa de esa banda (por ejemplo, una perturbación demasiado
-  grande, una duración muy larga, o ganancias del PID mal elegidas que no
-  alcanzan a corregir a tiempo), el estado pasa a **FALLA**: la línea de
-  y(t) se pone roja y el texto de arriba avisa "⚠ FALLA (fuera de umbral)".
-  Esto representa, físicamente, un evento de hipoxia severa (si y(t) cae
-  por debajo del umbral inferior) o de sobresaturación crítica (si sube por
-  encima del umbral superior).
-
----
-
-## 5. Ejemplo de uso típico (para reproducir el escenario del informe)
-
-1. Ejecutar el script.
-2. Dejar Kp = 2.5, Ki ≈ 0.0139 (equivale a Ti = 180 s) y Kd = 0, que son los
-   valores usados en el informe.
-3. Apretar **Play** y esperar a que el oxígeno se estabilice en 7 mg/L.
-4. Configurar **Amplitud pert.** en −1.5 y **Duración pert.** en 300 (segundos),
-   simulando el evento de alimentación descripto en la sección 6.3.2 del
-   informe.
-5. Apretar **Aplicar perturbación** y observar cómo el oxígeno cae y el
-   controlador PID lo recupera en pocos minutos, mientras la frecuencia del
-   aireador (gráfico de abajo) sube para compensar.
-6. Probar bajar Ki a 0 y repetir el paso 5: se puede ver cómo, sin acción
-   integral, el sistema queda con un error permanente (no vuelve exactamente
-   a 7 mg/L), demostrando por qué el informe elige un controlador PI y no uno
-   puramente proporcional.
-7. Para ver una **FALLA** en acción: subir la amplitud de la perturbación a
-   −3.0 mg/L, la duración a 500 s, y bajar Kp a 0.5. Al aplicar la
-   perturbación, el oxígeno cae por debajo del umbral inferior (5.0 mg/L) y
-   la línea se pone roja: eso simula un evento de hipoxia severa que el
-   controlador, mal sintonizado, no llega a corregir a tiempo.
-
----
-
-## 6. Problemas comunes
-
-- **"python3: command not found"** → Probar con `python` en vez de
-  `python3`, o reinstalar Python marcando la opción de agregarlo al PATH.
-- **"No module named matplotlib"** → Falta correr `pip install matplotlib
-  numpy` (paso 2).
-- **La ventana no responde / va lenta** → Es normal si hay muchas otras
-  aplicaciones abiertas; cerrar y volver a ejecutar el script suele
-  solucionarlo.
-- **Quiero cerrar el programa** → Simplemente cerrar la ventana del gráfico.
-
----
-
-## 7. Qué modelo matemático usa por detrás (para quien quiera más detalle)
-
-El proceso (estanque + aireador) se modela como un sistema de primer orden
-con tiempo muerto, linealizado alrededor del punto de operación normal
-(7 mg/L, 30 Hz), según la sección 6.2 del informe:
-
-```
-τ · d(Δy)/dt = −Δy + K · Δu(t − θ)
-```
-
-con τ = 300 s, θ = 30 s y K = 0.08 (mg/L)/Hz. El controlador aplica la ley
-PID clásica con anti-windup (para que el término integral no se "vuelva
-loco" cuando el aireador está al máximo o al mínimo), igual que el bloque
-PID_Compact configurado en el PLC Siemens S7-1200 descripto en la sección
-5.1.2 del informe.
+- El modelo de planta es el de 1er orden con retardo del informe:
+  G(s) = Kp/(τs+1)·e^(−θs), con Kp=0.08 (mg/L)/Hz, τ=300 s, θ=30 s.
+- El PI tiene anti-windup por integración condicional, igual que el
+  PID_Compact real (se congela la integral cuando u satura en 10 o 50 Hz).
+- Paso de integración fijo: dt = 1 s (Euler explícito).
+- Todo el código JS está comentado por bloques funcionales (BLOQUE 0 a 8)
+  dentro del mismo `.html`, siguiendo el orden del diagrama de bloques del
+  informe, por si querés mostrarlo o modificarlo.
