@@ -92,7 +92,7 @@ def actualizar_simulacion(frame):
     
     # 3. Algoritmo del Controlador PI con Anti-Windup
     proporcional = Kp_actual * e_actual
-    PI_calculado = profesional_integral = proporcional + Ki_actual * (integral + e_actual * dt)
+    PI_calculado = proporcional + Ki_actual * (integral + e_actual * dt)
     
     if 0.0 <= PI_calculado <= 50.0:
         integral += e_actual * dt
@@ -137,9 +137,10 @@ ax_ki = plt.axes([0.15, 0.08, 0.25, 0.03])
 ax_p_amp = plt.axes([0.65, 0.14, 0.25, 0.03])
 ax_p_dur = plt.axes([0.65, 0.08, 0.25, 0.03])
 
-# Botones reposicionados lado a lado en la base
-ax_btn_pert = plt.axes([0.30, 0.01, 0.18, 0.04])
-ax_btn_pausa = plt.axes([0.52, 0.01, 0.18, 0.04])
+# Botones reposicionados para incluir el de Reset
+ax_btn_pert = plt.axes([0.18, 0.01, 0.18, 0.04])
+ax_btn_pausa = plt.axes([0.41, 0.01, 0.18, 0.04])
+ax_btn_reset = plt.axes([0.64, 0.01, 0.18, 0.04])
 
 slider_kp = Slider(ax_kp, 'Ganancia Kp', 0.5, 15.0, valinit=Kp_actual, valfmt='%1.1f')
 slider_ki = Slider(ax_ki, 'Ganancia Ki', 0.001, 0.1, valinit=Ki_actual, valfmt='%1.3f')
@@ -148,6 +149,7 @@ slider_p_dur = Slider(ax_p_dur, 'Duración Pulso (s)', 10.0, 300.0, valinit=pert
 
 btn_pert = Button(ax_btn_pert, 'DISPARAR PERTURBACIÓN', color='crimson', hovercolor='darkred')
 btn_pausa = Button(ax_btn_pausa, 'PAUSAR SISTEMA', color='gold', hovercolor='orange')
+btn_reset = Button(ax_btn_reset, 'REINICIAR', color='skyblue', hovercolor='deepskyblue')
 
 # Funciones de callback
 def actualizar_kp(val): global Kp_actual; Kp_actual = val
@@ -174,12 +176,27 @@ def alternar_pausa(event):
         btn_pausa.hovercolor = 'orange'
     fig.canvas.draw_idle()
 
+# --- FUNCIÓN DE REINICIO ---
+def reiniciar_simulacion(event):
+    global t_data, r_data, y_data, e_data, u_data, d_data, integral, tiempo_actual, y_actual, perturbacion_activa, simulacion_en_pausa
+    t_data, r_data, y_data, e_data, u_data, d_data = [], [], [], [], [], []
+    integral = 0.0
+    tiempo_actual = 0.0
+    y_actual = 7.0
+    perturbacion_activa = False
+    simulacion_en_pausa = False
+    btn_pausa.label.set_text('PAUSAR SISTEMA')
+    btn_pausa.color = 'gold'
+    btn_pausa.hovercolor = 'orange'
+    for ax in axs: ax.set_xlim(0, 400)
+
 slider_kp.on_changed(actualizar_kp)
 slider_ki.on_changed(actualizar_ki)
 slider_p_amp.on_changed(actualizar_p_amp)
 slider_p_dur.on_changed(actualizar_p_dur)
 btn_pert.on_clicked(aplicar_carga)
 btn_pausa.on_clicked(alternar_pausa)
+btn_reset.on_clicked(reiniciar_simulacion)
 
 ani = FuncAnimation(fig, actualizar_simulacion, blit=True, interval=30, cache_frame_data=False)
 plt.show()
