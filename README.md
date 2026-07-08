@@ -46,7 +46,7 @@ Una vez activado, verá el texto "(venv)" al principio de la línea de comandos 
 El script requiere librerías específicas de procesamiento numérico y visualización matemática. Instálelas ejecutando el siguiente comando:
 
 ```
-pip install numpy matplotlib
+py -m pip install numpy matplotlib
 ```
 
 ### PASO 4: EJECUTAR LA SIMULACIÓN
